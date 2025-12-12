@@ -1,0 +1,170 @@
+// =============================================================================
+// LOGGING
+// =============================================================================
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// =============================================================================
+// DOCKER DISCOVERY
+// =============================================================================
+
+discovery.docker "all" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+
+  // Filter at the Docker API level — only running containers are discovered.
+  filter {
+    name   = "status"
+    values = ["running"]
+  }
+}
+
+// Enriches container targets with common labels used by both logs and metrics.
+discovery.relabel "docker" {
+  targets = discovery.docker.all.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "project"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "container_id"
+  }
+
+  rule {
+    target_label = "host"
+    replacement  = constants.hostname
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+}
+
+// =============================================================================
+// LOGS → LOKI
+// =============================================================================
+
+loki.source.docker "default" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.docker.output
+  labels        = {"platform" = "docker"}
+  relabel_rules = discovery.relabel.docker.rules
+  forward_to    = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// =============================================================================
+// METRICS → VICTORIAMETRICS
+// =============================================================================
+
+prometheus.remote_write "victoriametrics" {
+  external_labels = { host = constants.hostname }
+
+  endpoint {
+    url = "http://victoriametrics:8428/api/v1/write"
+  }
+}
+
+// -- App metrics (opt-in via docker labels) -----------------------------------
+// To enable scraping for any service, add to docker-compose.yaml:
+//   labels:
+//     metrics.scrape: "true"           # required
+//     metrics.path: "/custom/metrics"  # optional, defaults to /metrics
+
+discovery.relabel "app_metrics" {
+  targets = discovery.relabel.docker.output
+
+  rule {
+    source_labels = ["__meta_docker_container_label_metrics_scrape"]
+    regex         = "true"
+    action        = "keep"
+  }
+
+  // Port comes from the container's expose declaration.
+  rule {
+    source_labels = ["__meta_docker_network_ip", "__meta_docker_port_private"]
+    separator     = ":"
+    target_label  = "__address__"
+  }
+
+  // Default path is /metrics; override with metrics.path label if needed.
+  rule {
+    target_label = "__metrics_path__"
+    replacement  = "/metrics"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_metrics_path"]
+    regex         = "(.+)"
+    target_label  = "__metrics_path__"
+  }
+}
+
+prometheus.scrape "app" {
+  targets         = discovery.relabel.app_metrics.output
+  scrape_interval = "15s"
+  scrape_timeout  = "10s"
+  forward_to      = [prometheus.remote_write.victoriametrics.receiver]
+}
+
+
+// =============================================================================
+// PROFILES → PYROSCOPE
+// =============================================================================
+
+pyroscope.receive_http "default" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 4040
+  }
+  forward_to = [pyroscope.write.default.receiver]
+}
+
+pyroscope.write "default" {
+  endpoint {
+    url = "http://pyroscope:4040"
+  }
+}
+
+// =============================================================================
+// TRACES → TEMPO
+// =============================================================================
+
+otelcol.receiver.otlp "default" {
+  grpc { endpoint = "0.0.0.0:4317" }
+  http { endpoint = "0.0.0.0:4318" }
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint       = "tempo:4317"
+    wait_for_ready = true
+    tls { insecure = true }
+  }
+}

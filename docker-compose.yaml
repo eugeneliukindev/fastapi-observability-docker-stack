@@ -1,0 +1,229 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "8000:8000"
+    labels:
+      metrics.scrape: "true"
+    environment:
+      APP_NAME: backend
+      LOG_LEVEL: INFO
+      PYROSCOPE_HOST: alloy
+      PYROSCOPE_PORT: 4040
+      OTLP_HOST: alloy
+      OTLP_PORT: 4317
+      PROMETHEUS_MULTIPROC_DIR: /tmp/prometheus-metrics
+      GUNICORN_WORKERS: 2
+    volumes:
+      - backend_prometheus_metrics:/tmp/prometheus-metrics
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1" ]
+      start_period: 30s
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      alloy:
+        condition: service_started
+    networks:
+      - observability_network
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.131.0
+    container_name: victoriametrics
+    volumes:
+      - victoriametrics_data:/storage
+    command:
+      - -storageDataPath=/storage
+      - -httpListenAddr=:8428
+      - -graphiteListenAddr=:2003
+      - -opentsdbListenAddr=:4242
+      - -influxListenAddr=:8089
+      - -envflag.enable=true
+      - -envflag.prefix=VM_
+      - -loggerFormat=json
+      - -enableTCP6
+    environment:
+      VM_retentionPeriod: 12
+      VM_search_maxUniqueTimeseries: 1000000
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:8428/health || exit 1" ]
+      start_period: 5s
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - observability_network
+
+  vmalert:
+    image: victoriametrics/vmalert:v1.131.0
+    container_name: vmalert
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:8880/health || exit 1" ]
+      start_period: 3s
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+      alertmanager:
+        condition: service_healthy
+    volumes:
+      - ./observability/vmalert/rules:/etc/rules
+    command:
+      - '--datasource.url=http://victoriametrics:8428'
+      - '--remoteRead.url=http://victoriametrics:8428'
+      - '--remoteWrite.url=http://victoriametrics:8428'
+      - '--notifier.url=http://alertmanager:9093'
+      - '--rule=/etc/rules/*.yaml'
+    networks:
+      - observability_network
+
+  alertmanager:
+    image: prom/alertmanager:v0.29.0
+    container_name: alertmanager
+    volumes:
+      - ./observability/alertmanager/:/etc/alertmanager/
+    command:
+      - '--config.file=/etc/alertmanager/config.yaml'
+      - '--storage.path=/alertmanager'
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:9093/-/healthy || exit 1" ]
+      start_period: 3s
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - observability_network
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  alloy:
+    image: grafana/alloy:v1.12.0
+    container_name: alloy
+    privileged: true
+    ports:
+      - "12345:12345"
+    environment:
+      ALLOY_DEPLOY_MODE: docker
+    volumes:
+      - ./observability/alloy:/etc/alloy
+      - /proc:/rootproc:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /sys:/sys:ro
+      - /:/rootfs:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    devices:
+      - /dev/kmsg
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
+    networks:
+      - observability_network
+
+  loki:
+    # healthcheck broken in 3.6.0: https://github.com/grafana/loki/issues/19923
+    image: grafana/loki:3.5.9
+    container_name: loki
+    user: root
+    command:
+      - "-config.file=/etc/loki/config.yaml"
+      - "-config.expand-env=true"
+    volumes:
+      - loki_data:/loki
+      - ./observability/loki/config.yaml:/etc/loki/config.yaml
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1" ]
+      start_period: 30s
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - observability_network
+
+  grafana:
+    image: grafana/grafana:12.4.0-20082909961-ubuntu
+    container_name: grafana
+    user: root
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning/:/etc/grafana/provisioning/
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s -f http://localhost:3000/api/health || exit 1" ]
+      start_period: 3s
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      alertmanager:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
+    networks:
+      - observability_network
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  pyroscope:
+    container_name: pyroscope
+    image: grafana/pyroscope:1.17.0
+    command:
+      - "server"
+    volumes:
+      - pyroscope_data:/var/lib/pyroscope
+    networks:
+      - observability_network
+
+  tempo:
+    image: grafana/tempo:2.8.0
+    container_name: tempo
+    command:
+      - "-config.file=/etc/tempo/config.yaml"
+    volumes:
+      - ./observability/tempo/config.yaml:/etc/tempo/config.yaml
+      - tempo_data:/var/tempo
+    healthcheck:
+      test: [ "CMD", "/busybox/wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready" ]
+      start_period: 10s
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - observability_network
+
+
+networks:
+  observability_network:
+    driver: bridge
+
+volumes:
+  loki_data:
+  grafana_data:
+  victoriametrics_data:
+  pyroscope_data:
+  tempo_data:
+  backend_prometheus_metrics:

@@ -1,0 +1,45 @@
+global:
+  smtp_smarthost: '<SMTP_HOST>:<SMTP_PORT>'
+  smtp_from: '<SMTP_FROM>'
+  smtp_auth_username: '<SMTP_USERNAME>'
+  smtp_auth_password: '<SMTP_PASSWORD>'
+  smtp_require_tls: true
+
+  telegram_api_url: 'https://api.telegram.org'
+
+route:
+  receiver: 'default-receiver'
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  matchers: []
+
+receivers:
+  - name: 'default-receiver'
+    email_configs:
+      - to: '<ALERT_EMAIL>'
+        send_resolved: true
+        headers:
+          Subject: "[ALERT] {{ .CommonLabels.alertname }} - {{ .CommonLabels.severity }}"
+        html: |
+          <b>Alert: {{ .CommonLabels.alertname }}</b><br>
+          Severity: {{ .CommonLabels.severity }}<br>
+          Summary: {{ .CommonAnnotations.summary }}<br>
+          Description: {{ .CommonAnnotations.description }}
+
+    telegram_configs:
+      - bot_token: '<TELEGRAM_BOT_TOKEN>'
+        chat_id: <TELEGRAM_CHAT_ID>
+        send_resolved: true
+        parse_mode: 'HTML'
+        message: |
+          <b>Alert: {{ .CommonLabels.alertname }}</b>
+          Severity: {{ .CommonLabels.severity }}
+          Summary: {{ .CommonAnnotations.summary }}
+          Description: {{ .CommonAnnotations.description }}
+
+inhibit_rules:
+  - source_matchers: ['severity = critical']
+    target_matchers: ['severity = warning']
+    equal: ['alertname']

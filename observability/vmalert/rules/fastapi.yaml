@@ -1,0 +1,50 @@
+groups:
+  - name: fastapi
+    interval: 15s
+    rules:
+
+      # -------------------------------------------------------------------------
+      # Service availability
+      # -------------------------------------------------------------------------
+
+      - alert: BackendDown
+        expr: absent(fastapi_app_info{service="backend"})
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend is down"
+          description: "No metrics received from backend for more than 1 minute."
+
+      # -------------------------------------------------------------------------
+      # Error rate
+      # -------------------------------------------------------------------------
+
+      - alert: HighErrorRate
+        expr: |
+          sum by (container) (rate(fastapi_http_responses_total{status_code=~"5.."}[5m]))
+          /
+          sum by (container) (rate(fastapi_http_responses_total[5m]))
+          > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.container }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)."
+
+      # -------------------------------------------------------------------------
+      # Latency
+      # -------------------------------------------------------------------------
+
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum by (container, le) (rate(fastapi_http_request_duration_seconds_bucket[5m]))
+          ) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p99 latency on {{ $labels.container }}"
+          description: "p99 latency is {{ $value | humanizeDuration }} (threshold: 1s)."

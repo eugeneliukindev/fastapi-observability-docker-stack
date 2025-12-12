@@ -1,0 +1,25 @@
+from fastapi import FastAPI
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+from src.config import EXCLUDED_PATHS_GRAFANA
+from src.env import APP_NAME, OTLP_ENDPOINT
+
+
+def init_otlp(app: FastAPI) -> None:
+    resource = Resource.create(attributes={"service.name": APP_NAME})
+    tracer_provider = TracerProvider(resource=resource)
+    tracer_provider.add_span_processor(
+        BatchSpanProcessor(OTLPSpanExporter(endpoint=OTLP_ENDPOINT, insecure=True))
+    )
+    trace.set_tracer_provider(tracer_provider)
+
+    FastAPIInstrumentor.instrument_app(
+        app,
+        tracer_provider=tracer_provider,
+        excluded_urls=",".join(EXCLUDED_PATHS_GRAFANA),
+    )
