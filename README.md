@@ -322,27 +322,37 @@ Switch between them in Grafana using the **Project** dropdown at the top of the 
 ```
 .
 ├── docker-compose.yaml
-├── backend/                          # Example FastAPI app
+├── load.sh                               # Load generator script
+├── backend/                              # Example FastAPI app
 │   ├── Dockerfile
-│   ├── gunicorn.conf.py              # Worker lifecycle hooks (metrics on fork/exit)
+│   ├── gunicorn.conf.py                  # Worker lifecycle hooks (metrics on fork/exit)
 │   └── src/
-│       ├── main.py                   # FastAPI routes
+│       ├── main.py                       # FastAPI routes
+│       ├── logger.py                     # Structured logfmt logger setup
+│       ├── config.py                     # Excluded paths, constants
+│       ├── env.py                        # Environment variables
+│       ├── __version__.py                # App version
 │       ├── middleware/
-│       │   ├── metrics.py            # Prometheus middleware
-│       │   └── request.py            # Access log + request_id injection
+│       │   ├── base.py                   # ObservabilityMiddleware base class + route cache
+│       │   ├── metrics.py                # Prometheus metrics middleware
+│       │   ├── request.py                # Access log + request_id injection
+│       │   └── pyroscope.py              # Per-endpoint Pyroscope tag middleware
 │       └── observability/
-│           ├── prometheus/           # Multiprocess-safe metrics setup
-│           ├── opentelemetry/        # OTLP trace exporter
-│           └── pyroscope/            # Continuous profiling
+│           ├── init.py                   # Wires up all observability on app startup
+│           ├── opentelemetry/init.py     # TracerProvider + OTLP exporter + FastAPI instrumentation
+│           ├── prometheus/
+│           │   ├── init.py               # Multiprocess registry setup
+│           │   └── constants.py          # Metric definitions (counters, histograms, gauges)
+│           └── pyroscope/init.py         # Pyroscope SDK configuration
 └── observability/
-    ├── alloy/config.alloy            # Collector pipeline (metrics · logs · traces · profiles)
-    ├── alertmanager/config.yaml      # Alert routing & notification receivers
+    ├── alloy/config.alloy                # Collector pipeline (metrics · logs · traces · profiles)
+    ├── alertmanager/config.yaml          # Alert routing & notification receivers
     ├── grafana/provisioning/
-    │   ├── dashboards/fastapi.json   # Auto-provisioned FastAPI dashboard
-    │   └── datasources/              # All datasources pre-configured
-    ├── loki/config.yaml              # Log storage configuration
-    ├── tempo/config.yaml             # Trace storage + span metrics generation
-    └── vmalert/rules/fastapi.yaml    # Alert rules
+    │   ├── dashboards/fastapi.json       # Auto-provisioned FastAPI dashboard
+    │   └── datasources/datasources.yaml  # All datasources pre-configured
+    ├── loki/config.yaml                  # Log storage configuration
+    ├── tempo/config.yaml                 # Trace storage + span metrics generation
+    └── vmalert/rules/fastapi.yaml        # Alert rules
 ```
 
 ---
