@@ -50,6 +50,8 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             raise e from None
         else:
             status_code = response.status_code
+            # Exemplars are not supported with prometheus_multiproc mode — observe() accepts
+            # an exemplar kwarg but the multiprocess value collector silently drops them.
             REQUESTS_PROCESSING_TIME.labels(method=method, path=path).observe(time.perf_counter() - before_time)
         finally:
             RESPONSES.labels(method=method, path=path, status_code=status_code).inc()
