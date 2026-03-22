@@ -5,6 +5,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from pyroscope.otel import PyroscopeSpanProcessor
 
 from src.config import EXCLUDED_PATHS_GRAFANA
 from src.env import APP_NAME, OTLP_ENDPOINT
@@ -16,6 +17,8 @@ def init_otlp(app: FastAPI) -> None:
     tracer_provider.add_span_processor(
         BatchSpanProcessor(OTLPSpanExporter(endpoint=OTLP_ENDPOINT, insecure=True))
     )
+    # Links trace spans with Pyroscope profiles — enables "Profiles" button in Tempo
+    tracer_provider.add_span_processor(PyroscopeSpanProcessor())
     trace.set_tracer_provider(tracer_provider)
 
     FastAPIInstrumentor.instrument_app(
