@@ -32,6 +32,7 @@ ENDPOINTS=(
     "DELETE /api/orders/5678"
     "GET /api/random"
     "GET /api/slow"
+    "GET /api/cpu"
     "GET /api/bad-request"      # 400
     "GET /api/server-error"     # 500
 )

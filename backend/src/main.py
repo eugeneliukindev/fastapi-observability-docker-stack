@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from src.__version__ import VERSION
 from src.env import APP_NAME
 from src.logger import configure_logging, log
-from src.middleware import MetricsMiddleware, RequestAccessMiddleware
+from src.middleware import MetricsMiddleware, PyroscopeMiddleware, RequestAccessMiddleware
 from src.observability import init_observability
 
 configure_logging()
@@ -16,6 +16,7 @@ configure_logging()
 app = FastAPI(title=APP_NAME, version=VERSION)
 
 app.add_middleware(MetricsMiddleware)
+app.add_middleware(PyroscopeMiddleware)
 app.add_middleware(RequestAccessMiddleware)
 
 init_observability(app=app)
@@ -133,6 +134,22 @@ async def very_slow_endpoint():
     await asyncio.sleep(delay)
     log.info("Very slow request delay=%.2fs", delay)
     return {"delay": delay}
+
+
+@app.get("/api/cpu")
+async def cpu_bound():
+    """Fibonacci to generate CPU load — useful for profiling.
+    Intentionally async so it runs on the event loop thread, which allows
+    PyroscopeSpanProcessor to correctly tag CPU profiles with the span ID."""
+    def fib(n: int) -> int:
+        a, b = 0, 1
+        for _ in range(n):
+            a, b = b, a + b
+        return a
+
+    n = random.randint(300_000, 500_000)
+    result = fib(n)
+    return {"n": n, "last_digits": result % 10**6}
 
 
 @app.get("/api/bad-request")
