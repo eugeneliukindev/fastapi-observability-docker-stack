@@ -131,6 +131,20 @@ Every log line contains a `trace_id` linking it to a distributed trace.
 
 ---
 
+## Generate Load
+
+To populate the dashboards with real traffic, run the included load script:
+
+```bash
+./load.sh           # ~20 req/s against http://localhost:8000
+./load.sh 50        # custom rate
+./load.sh 10 http://localhost:8001  # custom rate + URL
+```
+
+The script cycles through all endpoints — normal requests, 4xx, 5xx, slow — so every dashboard panel gets data within seconds.
+
+---
+
 ## Quick Start
 
 ### 1. Configure alerting
