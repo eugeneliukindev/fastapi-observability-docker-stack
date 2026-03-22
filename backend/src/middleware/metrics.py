@@ -32,6 +32,7 @@ class MetricsMiddleware(ObservabilityMiddleware):
         REQUESTS.labels(method=method, path=path).inc()
         REQUESTS_IN_PROGRESS.labels(method=method, path=path).inc()
         before_time = time.perf_counter()
+        status_code = HTTP_500_INTERNAL_SERVER_ERROR
         try:
             response = await call_next(request)
         except BaseException as e:
