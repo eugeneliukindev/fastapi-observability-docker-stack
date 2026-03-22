@@ -38,7 +38,7 @@ datasources:
         filterByTraceID: true
         filterBySpanID: false
         customQuery: true
-        query: '{service="backend"} | logfmt | trace_id="${__trace.traceId}"'
+        query: '{service="backend"} | logfmt | trace_id="$${__trace.traceId}"'
       tracesToMetrics:
         datasourceUid: victoria-metrics
         spanStartTimeShift: "-2m"
