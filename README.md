@@ -3,6 +3,8 @@
 A full observability stack for a **Gunicorn/FastAPI** application, running entirely in Docker Compose.
 Covers all four pillars — **metrics · logs · traces · profiles** — with alerting out of the box.
 
+> Grafana dashboard: [FastAPI Full Observability](https://grafana.com/grafana/dashboards/25040-fastapi-full-observability/)
+
 ---
 
 ## Contents
