@@ -5,6 +5,24 @@ Covers all four pillars — **metrics · logs · traces · profiles** — with a
 
 ---
 
+## Contents
+
+- [Dashboard Preview](#dashboard-preview)
+- [Architecture](#architecture)
+- [How the Backend Works](#how-the-backend-works)
+- [Grafana Dashboard](#grafana-dashboard)
+- [Generate Load](#generate-load)
+- [Quick Start](#quick-start)
+- [Stack](#stack)
+- [Alerting](#alerting)
+- [Adding Your Own Service](#adding-your-own-service)
+- [Extending Instrumentation](#extending-instrumentation)
+- [Multiple Environments](#multiple-environments)
+- [Project Structure](#project-structure)
+- [Ports](#ports)
+
+---
+
 ## Dashboard Preview
 
 ![Overview](docs/screenshots/1.png)
@@ -39,6 +57,46 @@ Covers all four pillars — **metrics · logs · traces · profiles** — with a
 **Profiles**
 1. Pyroscope SDK pushes CPU flame graphs via HTTP → Alloy (`:4040`) → Pyroscope storage
 2. Grafana links profiles to traces via Tempo's `tracesToProfiles` integration
+
+---
+
+## How the Backend Works
+
+The `backend/` directory is a minimal **FastAPI + Gunicorn** application wired with all four observability signals. It is intentionally kept simple — the goal is to show the instrumentation, not the business logic.
+
+### Middleware stack
+
+Every request passes through three middlewares in order:
+
+```
+RequestAccessMiddleware → PyroscopeMiddleware → MetricsMiddleware → FastAPI router
+```
+
+| Middleware | What it does |
+|---|---|
+| `RequestAccessMiddleware` | Generates `request_id`, writes a structured logfmt access log line with method, path, status, duration |
+| `PyroscopeMiddleware` | Tags the current thread with `endpoint` and `method` so CPU profiles can be filtered per route |
+| `MetricsMiddleware` | Records `requests_total`, `responses_total`, `request_duration_seconds`, `requests_in_progress`, `exceptions_total` |
+
+### Multiprocess metrics
+
+Gunicorn forks multiple worker processes. The standard Prometheus client is not process-safe by default.
+The backend uses `prometheus_multiproc` mode — each worker writes its metrics to a shared directory (`/tmp/prometheus_multiproc`). The `/metrics` endpoint aggregates all files before responding.
+
+Worker lifecycle hooks in `gunicorn.conf.py` ensure per-worker gauges are cleaned up on exit.
+
+### OpenTelemetry
+
+Traces are sent via OTLP gRPC to Alloy (`:4317`) using `BatchSpanProcessor`.
+`FastAPIInstrumentor` automatically creates a root span for every request.
+`PyroscopeSpanProcessor` links each root span to a Pyroscope profile — enabling the **Profiles** button in Tempo.
+
+### Structured logging
+
+Every log line is emitted in `logfmt` format and includes:
+- `level`, `timestamp`, `message`
+- `request_id` — unique per request, also returned as `X-Request-Id` response header
+- `trace_id`, `span_id` — injected from the active OpenTelemetry span, enabling Logs → Traces navigation in Grafana
 
 ---
 
@@ -232,6 +290,14 @@ Alloy auto-discovers the container and attaches `project`, `service`, `container
 **No Alloy config changes needed.**
 
 > Logs are collected from **all** running containers automatically — no labels required.
+
+---
+
+## Extending Instrumentation
+
+The OpenTelemetry ecosystem provides auto-instrumentation packages for most common libraries (SQLAlchemy, httpx, Redis, Celery, gRPC and more) — install and register them to get traces with zero manual span code.
+
+Full list: [opentelemetry-python-contrib](https://opentelemetry-python-contrib.readthedocs.io/en/latest/index.html)
 
 ---
 
