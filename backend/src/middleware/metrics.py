@@ -1,16 +1,13 @@
 import time
-from typing import TypeAlias
 
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.middleware.base import RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.routing import Match
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 from starlette.types import ASGIApp
 
 from src.__version__ import VERSION
-from src.config import EXCLUDED_PATHS_GRAFANA
-
+from src.middleware.base import ObservabilityMiddleware
 from src.observability.prometheus.constants import (
     EXCEPTIONS,
     INFO,
@@ -20,23 +17,16 @@ from src.observability.prometheus.constants import (
     RESPONSES,
 )
 
-RequestPath: TypeAlias = str
-RouteTemplatedPath: TypeAlias = str
-IsHandledPath: TypeAlias = bool
 
-
-class MetricsMiddleware(BaseHTTPMiddleware):
+class MetricsMiddleware(ObservabilityMiddleware):
     def __init__(self, app: ASGIApp, version: str = VERSION) -> None:
         super().__init__(app)
         INFO.labels(version=version).set(1)
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def handle(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         method = request.method
-        if request.url.path in EXCLUDED_PATHS_GRAFANA:
-            return await call_next(request)
-
-        path, is_handled_path = self._get_path(request)
-        if not is_handled_path:
+        path = self.get_route_path(request)
+        if path is None:
             return await call_next(request)
 
         REQUESTS.labels(method=method, path=path).inc()
@@ -47,7 +37,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         except BaseException as e:
             status_code = HTTP_500_INTERNAL_SERVER_ERROR
             EXCEPTIONS.labels(method=method, path=path, exception_type=type(e).__name__).inc()
-            raise e from None
+            raise
         else:
             status_code = response.status_code
             # Exemplars are not supported with prometheus_multiproc mode — observe() accepts
@@ -58,11 +48,3 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             REQUESTS_IN_PROGRESS.labels(method=method, path=path).dec()
 
         return response
-
-    @staticmethod
-    def _get_path(request: Request) -> tuple[RouteTemplatedPath, IsHandledPath]:
-        for route in request.app.routes:
-            match, _child_scope = route.matches(request.scope)
-            if match == Match.FULL:
-                return route.path, True
-        return "", False
