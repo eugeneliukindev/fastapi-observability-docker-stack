@@ -7,12 +7,13 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pyroscope.otel import PyroscopeSpanProcessor
 
+from src.__version__ import VERSION
 from src.config import EXCLUDED_PATHS_GRAFANA
 from src.env import APP_NAME, OTLP_ENDPOINT
 
 
 def init_otlp(app: FastAPI) -> None:
-    resource = Resource.create(attributes={"service.name": APP_NAME})
+    resource = Resource.create(attributes={"service.name": APP_NAME, "service.version": VERSION})
     tracer_provider = TracerProvider(resource=resource)
     tracer_provider.add_span_processor(
         BatchSpanProcessor(OTLPSpanExporter(endpoint=OTLP_ENDPOINT, insecure=True))
