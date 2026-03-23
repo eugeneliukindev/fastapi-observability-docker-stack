@@ -1,6 +1,5 @@
-__all__ = ["MetricsMiddleware", "PyroscopeMiddleware", "RequestAccessMiddleware"]
+__all__ = ["MetricsMiddleware", "RequestAccessMiddleware"]
 
 from .base import ObservabilityMiddleware
 from .metrics import MetricsMiddleware
-from .pyroscope import PyroscopeMiddleware
 from .request import RequestAccessMiddleware

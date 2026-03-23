@@ -9,6 +9,10 @@ def init_pyroscope(
     port: int = PYROSCOPE_PORT,
     secure: bool = False,
 ):
+    # Per-endpoint CPU profiling via pyroscope.tag_wrapper is not supported in async Python:
+    # tag_wrapper uses thread-local storage, so tags leak across concurrent coroutines on the
+    # same OS thread. Per-trace profiles are linked via PyroscopeSpanProcessor instead.
+    # https://github.com/grafana/pyroscope-rs/issues/132
     scheme = "https" if secure else "http"
     pyroscope.configure(
         application_name=application_name,

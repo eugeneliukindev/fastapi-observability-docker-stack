@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from src.__version__ import VERSION
 from src.env import APP_NAME
 from src.logger import configure_logging, log
-from src.middleware import MetricsMiddleware, PyroscopeMiddleware, RequestAccessMiddleware
+from src.middleware import MetricsMiddleware, RequestAccessMiddleware
 from src.observability import init_observability
 
 configure_logging()
@@ -16,7 +16,6 @@ configure_logging()
 app = FastAPI(title=APP_NAME, version=VERSION)
 
 app.add_middleware(MetricsMiddleware)
-app.add_middleware(PyroscopeMiddleware)
 app.add_middleware(RequestAccessMiddleware)
 
 init_observability(app=app)
