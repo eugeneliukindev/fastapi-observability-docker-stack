@@ -171,6 +171,15 @@ Requests currently being processed — total and by path. Useful for detecting r
 
 ---
 
+### Profiling
+
+![Profiling](docs/screenshots/10.png)
+
+- **CPU Time Consumed** — total CPU usage over time across all workers
+- **Flame Graph** — aggregated call stack for the selected time range; shows hottest functions by self/total CPU time
+
+---
+
 ### Cross-signal Navigation
 
 Every log line contains a `trace_id` linking it to a distributed trace.

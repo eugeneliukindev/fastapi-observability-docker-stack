@@ -23,6 +23,14 @@
       "type": "datasource",
       "pluginId": "loki",
       "pluginName": "Loki"
+    },
+    {
+      "name": "DS_PYROSCOPE",
+      "label": "Pyroscope",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "grafana-pyroscope-datasource",
+      "pluginName": "Grafana Pyroscope"
     }
   ],
   "__elements": {},
@@ -127,7 +135,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Application Performance Index (0–1).\n\nsatisfied  = requests < 0.5 s\ntolerating = requests 0.5–2.5 s (count as 0.5)\nfrustrated = requests > 2.5 s (ignored)\n\nApdex = (satisfied + tolerating/2) / total\n\n≥ 0.94 excellent · ≥ 0.7 acceptable · < 0.7 poor",
+      "description": "Application Performance Index (0\u20131).\n\nsatisfied  = requests < 0.5 s\ntolerating = requests 0.5\u20132.5 s (count as 0.5)\nfrustrated = requests > 2.5 s (ignored)\n\nApdex = (satisfied + tolerating/2) / total\n\n\u2265 0.94 excellent \u00b7 \u2265 0.7 acceptable \u00b7 < 0.7 poor",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -203,7 +211,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Fraction of 4xx and 5xx responses out of total requests.\n\nYellow > 1% · Red > 5%",
+      "description": "Fraction of 4xx and 5xx responses out of total requests.\n\nYellow > 1% \u00b7 Red > 5%",
       "fieldConfig": {
         "defaults": {
           "mappings": [],
@@ -341,7 +349,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Number of active Gunicorn workers. Drop below expected count → worker crash.",
+      "description": "Number of active Gunicorn workers. Drop below expected count \u2192 worker crash.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -458,7 +466,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Requests per second aggregated across all endpoints (R — Rate in RED methodology).",
+      "description": "Requests per second aggregated across all endpoints (R \u2014 Rate in RED methodology).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -551,7 +559,7 @@
           "refId": "A"
         }
       ],
-      "title": "RPS — total",
+      "title": "RPS \u2014 total",
       "type": "timeseries"
     },
     {
@@ -648,7 +656,7 @@
           "refId": "A"
         }
       ],
-      "title": "RPS — by path",
+      "title": "RPS \u2014 by path",
       "type": "timeseries"
     },
     {
@@ -656,7 +664,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "RPS by HTTP status code. 2xx green · 3xx blue · 4xx yellow · 5xx red.",
+      "description": "RPS by HTTP status code. 2xx green \u00b7 3xx blue \u00b7 4xx yellow \u00b7 5xx red.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -806,7 +814,7 @@
           "refId": "A"
         }
       ],
-      "title": "RPS — by status code",
+      "title": "RPS \u2014 by status code",
       "type": "timeseries"
     },
     {
@@ -907,7 +915,7 @@
           "refId": "A"
         }
       ],
-      "title": "P50 — total",
+      "title": "P50 \u2014 total",
       "type": "timeseries"
     },
     {
@@ -1004,7 +1012,7 @@
           "refId": "A"
         }
       ],
-      "title": "P50 — by path",
+      "title": "P50 \u2014 by path",
       "type": "timeseries"
     },
     {
@@ -1105,7 +1113,7 @@
           "refId": "A"
         }
       ],
-      "title": "P95 — total",
+      "title": "P95 \u2014 total",
       "type": "timeseries"
     },
     {
@@ -1202,7 +1210,7 @@
           "refId": "A"
         }
       ],
-      "title": "P95 — by path",
+      "title": "P95 \u2014 by path",
       "type": "timeseries"
     },
     {
@@ -1210,7 +1218,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Tail latency across all endpoints.\n\nP99 spike with stable P50 → GC pause, lock contention, or slow DB query.\n\nYellow > 1 s · Red > 5 s",
+      "description": "Tail latency across all endpoints.\n\nP99 spike with stable P50 \u2192 GC pause, lock contention, or slow DB query.\n\nYellow > 1 s \u00b7 Red > 5 s",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1311,7 +1319,7 @@
           "refId": "A"
         }
       ],
-      "title": "P99 — total",
+      "title": "P99 \u2014 total",
       "type": "timeseries"
     },
     {
@@ -1319,7 +1327,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Tail latency per endpoint. Yellow > 1 s · Red > 5 s",
+      "description": "Tail latency per endpoint. Yellow > 1 s \u00b7 Red > 5 s",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1416,7 +1424,7 @@
           "refId": "A"
         }
       ],
-      "title": "P99 — by path",
+      "title": "P99 \u2014 by path",
       "type": "timeseries"
     },
     {
@@ -1424,7 +1432,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Instant snapshot of the 10 slowest endpoints by P95 latency. Bars are colour-graded green → red.",
+      "description": "Instant snapshot of the 10 slowest endpoints by P95 latency. Bars are colour-graded green \u2192 red.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1494,7 +1502,7 @@
           "refId": "A"
         }
       ],
-      "title": "Top 10 Slowest Endpoints — P95",
+      "title": "Top 10 Slowest Endpoints \u2014 P95",
       "type": "bargauge"
     },
     {
@@ -1593,7 +1601,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Total in-flight requests across all endpoints.\n\nExpected ≈ RPS × avg_duration (Little's Law). Growth with stable RPS → stuck requests.",
+      "description": "Total in-flight requests across all endpoints.\n\nExpected \u2248 RPS \u00d7 avg_duration (Little's Law). Growth with stable RPS \u2192 stuck requests.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1690,7 +1698,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Live count of in-flight requests per endpoint (gauge metric).\n\nSpike on a specific path → slow upstream or blocked worker.",
+      "description": "Live count of in-flight requests per endpoint (gauge metric).\n\nSpike on a specific path \u2192 slow upstream or blocked worker.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1800,7 +1808,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Rate of client errors (4xx) per endpoint.\n\n400 bad request · 401/403 auth · 404 not found · 422 validation error\n\nHigh 422s on a POST endpoint → schema mismatch on the client side.",
+      "description": "Rate of client errors (4xx) per endpoint.\n\n400 bad request \u00b7 401/403 auth \u00b7 404 not found \u00b7 422 validation error\n\nHigh 422s on a POST endpoint \u2192 schema mismatch on the client side.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2309,7 +2317,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "P99 latency per span/operation from trace span metrics.\n\nMore granular than HTTP metrics — includes DB calls, cache lookups, internal functions.",
+      "description": "P99 latency per span/operation from trace span metrics.\n\nMore granular than HTTP metrics \u2014 includes DB calls, cache lookups, internal functions.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2406,7 +2414,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Fraction of spans with STATUS_CODE_ERROR per operation.\n\nHigh error rate on an internal span with no HTTP 5xx → swallowed exception.",
+      "description": "Fraction of spans with STATUS_CODE_ERROR per operation.\n\nHigh error rate on an internal span with no HTTP 5xx \u2192 swallowed exception.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2507,7 +2515,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Rate of database calls from the service graph (Tempo).\n\nSpikes here during high HTTP load are expected; spikes without HTTP load → background job.",
+      "description": "Rate of database calls from the service graph (Tempo).\n\nSpikes here during high HTTP load are expected; spikes without HTTP load \u2192 background job.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2604,7 +2612,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "P99 latency of database calls via service graph metrics.\n\nCorrelate with application P99 — if DB P99 grows with app P99, the database is the bottleneck.",
+      "description": "P99 latency of database calls via service graph metrics.\n\nCorrelate with application P99 \u2014 if DB P99 grows with app P99, the database is the bottleneck.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2815,7 +2823,7 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Log event count per severity level over time. Sudden spike in error/warn → correlate with RPS and P99 panels above.",
+      "description": "Log event count per severity level over time. Sudden spike in error/warn \u2192 correlate with RPS and P99 panels above.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3037,6 +3045,99 @@
       ],
       "title": "Log Stream",
       "type": "logs"
+    },
+    {
+      "id": 80,
+      "type": "row",
+      "title": "Profiling",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 113
+      }
+    },
+    {
+      "id": 82,
+      "type": "flamegraph",
+      "title": "Flame Graph",
+      "datasource": {
+        "type": "grafana-pyroscope-datasource",
+        "uid": "${DS_PYROSCOPE}"
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 122
+      },
+      "options": {},
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-pyroscope-datasource",
+            "uid": "${DS_PYROSCOPE}"
+          },
+          "refId": "A",
+          "profileTypeId": "process_cpu:cpu:nanoseconds:cpu:nanoseconds",
+          "labelSelector": "{service_name=\"backend\"}",
+          "groupBy": [],
+          "queryType": "profile"
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "type": "timeseries",
+      "title": "CPU Time Consumed \u2014 Total",
+      "datasource": {
+        "type": "grafana-pyroscope-datasource",
+        "uid": "${DS_PYROSCOPE}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 114
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-pyroscope-datasource",
+            "uid": "${DS_PYROSCOPE}"
+          },
+          "refId": "A",
+          "profileTypeId": "process_cpu:cpu:nanoseconds:cpu:nanoseconds",
+          "labelSelector": "{service_name=\"backend\"}",
+          "groupBy": [],
+          "queryType": "metrics"
+        }
+      ]
     }
   ],
   "preload": false,
@@ -3095,6 +3196,21 @@
         "type": "datasource"
       },
       {
+        "current": {
+          "text": "",
+          "value": "${DS_PYROSCOPE}",
+          "selected": true
+        },
+        "includeAll": false,
+        "label": "Pyroscope",
+        "name": "DS_PYROSCOPE",
+        "options": [],
+        "query": "grafana-pyroscope-datasource",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
         "allValue": ".*",
         "current": {},
         "datasource": {
@@ -3110,6 +3226,29 @@
         "query": {
           "qryType": 1,
           "query": "label_values(fastapi_app_info, project)",
+          "refId": "Q"
+        },
+        "refresh": 2,
+        "regex": "",
+        "regexApplyTo": "value",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(traces_spanmetrics_calls_total, service)",
+        "includeAll": false,
+        "label": "Service",
+        "name": "service",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(traces_spanmetrics_calls_total, service)",
           "refId": "Q"
         },
         "refresh": 2,
@@ -3158,29 +3297,6 @@
         "query": {
           "qryType": 1,
           "query": "label_values(fastapi_http_requests_total{project=~\"$project\", method=~\"$method\"}, path)",
-          "refId": "Q"
-        },
-        "refresh": 2,
-        "regex": "",
-        "regexApplyTo": "value",
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "allValue": ".*",
-        "current": {},
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${DS_PROMETHEUS}"
-        },
-        "definition": "label_values(traces_spanmetrics_calls_total, service)",
-        "includeAll": false,
-        "label": "Service",
-        "name": "service",
-        "options": [],
-        "query": {
-          "qryType": 1,
-          "query": "label_values(traces_spanmetrics_calls_total, service)",
           "refId": "Q"
         },
         "refresh": 2,
