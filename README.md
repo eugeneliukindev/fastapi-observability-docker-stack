@@ -18,9 +18,7 @@ Covers all four pillars — **metrics · logs · traces · profiles** — with a
 - [Stack](#stack)
 - [Alerting](#alerting)
 - [Adding Your Own Service](#adding-your-own-service)
-- [Extending Instrumentation](#extending-instrumentation)
 - [Multiple Environments](#multiple-environments)
-- [Project Structure](#project-structure)
 - [Ports](#ports)
 
 ---
@@ -71,13 +69,12 @@ The `backend/` directory is a minimal **FastAPI + Gunicorn** application wired w
 Every request passes through three middlewares in order:
 
 ```
-RequestAccessMiddleware → PyroscopeMiddleware → MetricsMiddleware → FastAPI router
+RequestAccessMiddleware → MetricsMiddleware → FastAPI router
 ```
 
 | Middleware | What it does |
 |---|---|
 | `RequestAccessMiddleware` | Generates `request_id`, writes a structured logfmt access log line with method, path, status, duration |
-| `PyroscopeMiddleware` | Tags the current thread with `endpoint` and `method` so CPU profiles can be filtered per route |
 | `MetricsMiddleware` | Records `requests_total`, `responses_total`, `request_duration_seconds`, `requests_in_progress`, `exceptions_total` |
 
 ### Multiprocess metrics
@@ -295,14 +292,6 @@ Alloy auto-discovers the container and attaches `project`, `service`, `container
 
 ---
 
-## Extending Instrumentation
-
-The OpenTelemetry ecosystem provides auto-instrumentation packages for most common libraries (SQLAlchemy, httpx, Redis, Celery, gRPC and more) — install and register them to get traces with zero manual span code.
-
-Full list: [opentelemetry-python-contrib](https://opentelemetry-python-contrib.readthedocs.io/en/latest/index.html)
-
----
-
 ## Multiple Environments
 
 Run `dev` and `staging` side by side:
@@ -314,46 +303,6 @@ docker compose -p staging up -d
 
 Each project gets its own `project` label on all metrics and logs.
 Switch between them in Grafana using the **Project** dropdown at the top of the dashboard.
-
----
-
-## Project Structure
-
-```
-.
-├── docker-compose.yaml
-├── load.sh                               # Load generator script
-├── backend/                              # Example FastAPI app
-│   ├── Dockerfile
-│   ├── gunicorn.conf.py                  # Worker lifecycle hooks (metrics on fork/exit)
-│   └── src/
-│       ├── main.py                       # FastAPI routes
-│       ├── logger.py                     # Structured logfmt logger setup
-│       ├── config.py                     # Excluded paths, constants
-│       ├── env.py                        # Environment variables
-│       ├── __version__.py                # App version
-│       ├── middleware/
-│       │   ├── base.py                   # ObservabilityMiddleware base class + route cache
-│       │   ├── metrics.py                # Prometheus metrics middleware
-│       │   ├── request.py                # Access log + request_id injection
-│       │   └── pyroscope.py              # Per-endpoint Pyroscope tag middleware
-│       └── observability/
-│           ├── init.py                   # Wires up all observability on app startup
-│           ├── opentelemetry/init.py     # TracerProvider + OTLP exporter + FastAPI instrumentation
-│           ├── prometheus/
-│           │   ├── init.py               # Multiprocess registry setup
-│           │   └── constants.py          # Metric definitions (counters, histograms, gauges)
-│           └── pyroscope/init.py         # Pyroscope SDK configuration
-└── observability/
-    ├── alloy/config.alloy                # Collector pipeline (metrics · logs · traces · profiles)
-    ├── alertmanager/config.yaml          # Alert routing & notification receivers
-    ├── grafana/provisioning/
-    │   ├── dashboards/fastapi.json       # Auto-provisioned FastAPI dashboard
-    │   └── datasources/datasources.yaml  # All datasources pre-configured
-    ├── loki/config.yaml                  # Log storage configuration
-    ├── tempo/config.yaml                 # Trace storage + span metrics generation
-    └── vmalert/rules/fastapi.yaml        # Alert rules
-```
 
 ---
 
