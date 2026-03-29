@@ -35,6 +35,7 @@ ENDPOINTS=(
     "GET /api/cpu"
     "GET /api/bad-request"      # 400
     "GET /api/server-error"     # 500
+    "GET /api/exception"
 )
 
 ITEM_BODY='{"name": "Test Item", "price": 9.99}'
